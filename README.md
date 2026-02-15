@@ -18,7 +18,7 @@ PSI sensor is a hardware/software device that has several different sensors that
 
 ## Details for each subsystem
 
-## The System on a Chip (SoC)
+### The System on a Chip (SoC)
 The ESP32
 
 ### Temperature, Humidity and Pressure
