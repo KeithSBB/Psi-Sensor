@@ -16,7 +16,10 @@ PSI sensor is a hardware/software device that has several different sensors that
 **Inside bottom half**
 ![Alt text](images/openbottom.png)
 
-## Details for each sensor
+## Details for each subsystem
+
+## The System on a Chip (SoC)
+The ESP32
 
 ### Temperature, Humidity and Pressure
 
