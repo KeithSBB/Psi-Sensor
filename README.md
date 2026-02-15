@@ -1,16 +1,34 @@
 # Psi-Sensor
 
-**PSI Sensor** is an ESP32-based, ESPHome-integrated multi-sensor device designed to measure environmental and electromagnetic phenomena often associated with reported paranormal activity.  
+## Introduction
+
+Paranormal research, spanning over a century from the Society for Psychical Research (founded 1882) to modern instrumental transcommunication (ITC) and field investigations, has repeatedly documented environmental correlates with reported anomalous events:
+
+- **Cold spots** – localized temperature drops of 5–20 °C with no obvious cause
+- **EMF spikes** – transient magnetic field fluctuations, especially in the 0.1–20 Hz range and at power-line frequencies
+- **Barometric micro-changes** – small, rapid pressure shifts sometimes preceding poltergeist-like activity
+- **Electronic voice phenomena (EVP)** – unexplained voices or sounds captured on audio recorders
+- **Infrasound and atmospheric correlates** – low-frequency sound and humidity/pressure interactions that can induce unease or hallucinations in humans
+
+While no single sensor has ever conclusively proven the existence of supernatural entities, multi-sensor correlation has become a cornerstone of serious field work. Simultaneous spikes across several independent channels are considered stronger evidence than isolated readings.
+
+This **PSI Sensor** is designed explicitly for that multi-parameter approach. By combining precision temperature/humidity/pressure (BME280), high-resolution digital audio (INMP441), and a sensitive AC magnetic field detector (induction coil + LMV358 amplification) on a single ESP32 platform, it provides Home Assistant with a continuous, time-synced data stream that can reveal correlated anomalies in real time.
+
+A particularly intriguing theoretical lens is the **Trickster hypothesis**, most thoroughly explored by George P. Hansen in *The Trickster and the Paranormal* (2001). Hansen argues that paranormal phenomena often exhibit characteristics of the archetypal trickster: deceptive, boundary-crossing, anti-structural, and stubbornly resistant to controlled scientific replication. Phenomena appear when scrutiny is low, vanish under rigid protocols, and sometimes seem to “play” with investigators or equipment. A multi-sensor device like the PSI Sensor acknowledges this elusive nature by collecting broad, passive data rather than forcing a narrow hypothesis. The hope is that patterns—or deliberate disruptions—may emerge across the combined channels that would be missed by single-axis “ghost meters.”
+
+Ultimately, the PSI Sensor is both a practical environmental monitor and an open-ended experiment: objective data for skeptics, correlated anomalies for investigators, and (via projects like Barabashka) a way to let an AI assistant “feel” its surroundings in a uniquely paranormal-aware way.
+
+**PSI Sensor** is an ESP32-based, ESPHome-integrated multi-sensor device designed to measure environmental and electromagnetic phenomena often associated with reported paranormal activity.
 
 The sensor suite provides real-time data for:
 - Temperature
 - Relative humidity
 - Barometric pressure
 - Ambient sound level (dB SPL)
-- Electromagnetic field strength (EMF, primarily 50/60 Hz AC)
-- Quantum-like noise for true random number generation (TRNG)
+- Electromagnetic field fluctuations (EMF, AC-coupled)
+- Optional true random number generation from microphone noise
 
-All sensors are exposed in Home Assistant and can be used to influence automations or AI personalities. The companion project **[Barabashka](https://github.com/KeithSBB/barabashka)** demonstrates how these measurements can dynamically modify Grok AI responses in Home Assistant.
+All sensors are exposed in Home Assistant and can be used to influence automations or AI personalities. The companion project **[Barabashka](https://github.com/KeithSBB/barabashka)** shows how these measurements can dynamically modify Grok AI responses.
 
 ## Photos
 
@@ -31,61 +49,59 @@ All sensors are exposed in Home Assistant and can be used to influence automatio
 
 ## Hardware Components
 
-| Qty | Component | Notes / Link |
-|-----|-----------|--------------|
-| 1 | ESP-WROOM-32 ESP32 30-pin development board + breakout shield | Main MCU, Wi-Fi, dual-core, plenty of GPIO |
-| 1 | GY-BME280 5 V compatible breakout (temperature, humidity, pressure) | I²C interface |
-| 1–6 | INMP441 omnidirectional I²S digital microphone module | One primary mic for sound level; extras can be used for noise TRNG or directional array |
-| 1 | QWORK demonstration induction coil (primary + secondary + iron core) | Used as EMF pickup coil |
-| 1 | LMV358 dual op-amp breakout | Low-voltage rail-to-rail op-amp for EMF signal amplification |
-| 1 | KBP206 bridge rectifier (2 A, 600 V) | Full-wave rectification of induced AC to DC for ESP32 ADC |
-| – | Resistors, capacitors, prototyping PCB, enclosure, wires, 5 V power supply | As needed for signal conditioning and mounting |
+| Qty | Component | Notes |
+|-----|-----------|-------|
+| 1 | ESP-WROOM-32 30-pin development board + breakout shield | Main MCU, Wi-Fi, 3.3 V logic |
+| 1 | GY-BME280 breakout | Temperature, humidity, pressure (I²C) |
+| 1–6 | INMP441 omnidirectional I²S digital microphone | Primary for sound level; extras optional for noise TRNG |
+| 1 | QWORK demonstration induction coil (primary + secondary) | EMF pickup (secondary winding used) |
+| 1 | LMV358 dual op-amp breakout | Amplifies tiny AC voltage from coil |
+| – | Prototyping PCB, enclosure, wires, resistors/capacitors for biasing | Minimal additional passives for op-amp bias and coupling |
+
+**Important power note**: The entire system runs on **3.3 V**.  
+- ESP32 board is powered via USB (internal regulator provides 3.3 V).  
+- BME280 and all INMP441 modules are powered directly from the ESP32 3.3 V rail.  
+- LMV358 is also powered from 3.3 V (rail-to-rail op-amp).
 
 ## Subsystem Details
 
 ### 1. System on a Chip – ESP32-WROOM-32
-- Dual-core Tensilica LX6 processor, 240 MHz, 520 KB SRAM  
-- Integrated Wi-Fi + Bluetooth for OTA updates via ESPHome  
-- Multiple ADC channels (18 total, 12-bit), I²C, I²S, and plenty of GPIO  
-- Powered via USB or 5 V external supply; 3.3 V logic throughout
+- Dual-core Tensilica LX6, 240 MHz, integrated Wi-Fi/BT
+- 3.3 V logic throughout
+- ADC1 channels used for analog inputs
+- I²C and I²S peripherals for sensors
 
 ### 2. Temperature, Humidity & Barometric Pressure – BME280
-- Combined digital sensor (Bosch)  
-- Temperature: ±0.5 °C accuracy, –40…+85 °C  
-- Humidity: ±3 % RH  
-- Pressure: ±1 hPa  
-- Connected via I²C (default address 0x76 or 0x77) to ESP32 GPIO 21 (SDA) and 22 (SCL)  
-- 5 V tolerant breakout used; powered directly from 5 V rail with 3.3 V logic level shifting handled by the module
+- Bosch combined digital sensor
+- Temperature: ±0.5 °C
+- Humidity: ±3 % RH
+- Pressure: ±1 hPa
+- I²C interface (default address 0x76 or 0x77)
+- Connected to GPIO 21 (SDA) and GPIO 22 (SCL)
+- Powered from ESP32 3.3 V rail
 
 ### 3. Ambient Sound – INMP441 I²S Microphone
-- Digital 24-bit I²S output, 44.1 kHz sample rate capable  
-- High dynamic range (61 dB SNR) and omnidirectional pattern  
-- Primary microphone connected to ESP32 I²S pins:  
-  - SCK → GPIO 14  
-  - WS → GPIO 15  
-  - SD → GPIO 32  
-  - L/R = GND (left channel)  
-- ESPHome calculates RMS sound level and reports as dB SPL (A-weighted approximation)
+- Digital 24-bit I²S omnidirectional microphone
+- Powered from 3.3 V
+- Primary microphone pins:
+  - SCK → GPIO 14
+  - WS  → GPIO 15
+  - SD  → GPIO 32
+  - L/R = GND (left channel)
+- ESPHome computes approximate dB SPL from RMS
 
-### 4. Electromagnetic Field (EMF) Detector
-Custom analog front-end built around the induction coil:
+### 4. Electromagnetic Field (EMF) Detector – AC-Coupled
+The EMF subsystem is deliberately minimal:
 
-1. **Pickup coil** – Secondary winding of the QWORK demonstration coil (several hundred turns) acts as a search coil. Changing magnetic fields (especially 50/60 Hz power-line hum or anomalous fluctuations) induce a small AC voltage.
-2. **Amplification** – LMV358 configured as non-inverting AC amplifier (gain ≈ 100–500, adjustable with feedback resistor). Single-supply operation from 5 V with bias at ~2.5 V.
-3. **Rectification** – KBP206 full-wave bridge rectifier converts amplified AC to pulsating DC.
-4. **Smoothing & buffering** – RC low-pass filter (e.g., 10 kΩ + 4.7 µF) creates a DC level proportional to EMF strength.
-5. **ADC input** – Smoothed DC fed to ESP32 ADC1_CH4 (GPIO 32 or similar spare channel). ESPHome reads raw ADC value and converts to approximate mG or arbitrary units.
+1. **Pickup coil** – Secondary winding of the QWORK induction coil induces a tiny AC voltage proportional to changing magnetic fields.
+2. **Direct connection to op-amp** – Coil leads go straight to one channel of the LMV358 configured as a high-gain non-inverting AC amplifier (gain ≈ 500–2000).
+3. **Single-supply biasing** – Voltage divider biases non-inverting input to ~1.65 V; coupling capacitor blocks DC.
+4. **Direct to ESP32 ADC** – Op-amp output connects directly to an ADC1 pin (e.g., GPIO 33). ESPHome samples the amplified AC waveform and can compute RMS or peak values.
 
-This design is sensitive to low-frequency magnetic fields and is a classic “ghost hunter” style EMF meter.
+This preserves fast transients often sought in paranormal investigations.
 
-### 5. Quantum Noise Random Number Generator (TRNG)
-Paranormal enthusiasts often look for anomalies in truly random processes. We provide a hardware-derived entropy source:
-
-- One or more spare INMP441 microphones are run at maximum gain with the input shorted or pointed at a quiet area.  
-- The least-significant bits of the raw I²S audio stream contain thermal and shot noise that is effectively unpredictable.  
-- ESPHome’s `random` component extracts entropy and exposes a binary sensor that flips based on true random bits, plus a sensor for raw entropy quality.
-
-Alternative: ADC noise from an unused channel or reverse-biased transistor junction can be added if desired.
+### 5. Optional Quantum Noise / True Random Number Generator
+Extra INMP441 microphones provide high-entropy noise for true random bits—a nod to the idea that genuine randomness may itself fluctuate in the presence of anomalous influence.
 
 ## ESPHome Configuration (example)
 
